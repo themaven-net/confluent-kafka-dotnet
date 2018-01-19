@@ -223,12 +223,18 @@ namespace Confluent.Kafka.Impl
                     var is64 = IntPtr.Size == 8;
                     var baseUri = new Uri(Assembly.GetExecutingAssembly().GetName().EscapedCodeBase);
                     var baseDirectory = Path.GetDirectoryName(baseUri.LocalPath);
-                    var dllDirectory = Path.Combine(
-                        baseDirectory, 
-                        is64 
-                            ? Path.Combine("librdkafka", "x64")
-                            : Path.Combine("librdkafka", "x86"));
-                    path = Path.Combine(dllDirectory, "librdkafka.dll");
+
+                    path = Path.Combine(baseDirectory, "librdkafka.so");
+                    string dllDirectory = null;
+
+                    if (!File.Exists(path)) {
+                        dllDirectory = Path.Combine(
+                            baseDirectory,
+                            is64
+                                ? Path.Combine("librdkafka", "x64")
+                                : Path.Combine("librdkafka", "x86"));
+                        path = Path.Combine(dllDirectory, "librdkafka.so");
+                    }
 
                     if (!File.Exists(path))
                     {
@@ -237,10 +243,13 @@ namespace Confluent.Kafka.Impl
                             is64 
                                 ? @"runtimes\win7-x64\native"
                                 : @"runtimes\win7-x86\native");
-                        path = Path.Combine(dllDirectory, "librdkafka.dll");
+                        path = Path.Combine(dllDirectory, "librdkafka.so");
                     }
                 }
 
+                PosixNative.dlopen(path, 0);
+
+                /*
                 if (WindowsNative.LoadLibraryEx(path, IntPtr.Zero, WindowsNative.LoadLibraryFlags.LOAD_WITH_ALTERED_SEARCH_PATH) == IntPtr.Zero)
                 {
                     // catch the last win32 error by default and keep the associated default message
@@ -253,6 +262,7 @@ namespace Confluent.Kafka.Impl
 
                     throw new InvalidOperationException(additionalMessage, win32Exception);
                 }
+                */
 
                 isInitialized = SetDelegates(typeof(NativeMethods.NativeMethods));
 
