@@ -1008,7 +1008,7 @@ namespace Confluent.Kafka
         ///     a Task, the Tasks will never complete. Typically you should set this parameter to false. Set it to true for "fire and
         ///     forget" semantics and a small boost in performance.
         /// </param>
-        private Producer(
+        public Producer(
             IEnumerable<KeyValuePair<string, object>> config,
             ISerializer<TKey> keySerializer,
             ISerializer<TValue> valueSerializer,
@@ -1049,32 +1049,6 @@ namespace Confluent.Kafka
             ISerializer<TKey> keySerializer,
             ISerializer<TValue> valueSerializer
         ) : this(config, keySerializer, valueSerializer, false, false) {}
-
-
-        /// <summary>
-        ///     Initializes a new Producer instance.
-        /// </summary>
-        /// <param name="config">
-        ///     librdkafka configuration parameters (refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md).
-        ///     Topic configuration parameters are specified via the "default.topic.config" sub-dictionary config parameter.
-        /// </param>
-        /// <param name="keySerializer">
-        ///     An ISerializer implementation instance that will be used to serialize keys.
-        /// </param>
-        /// <param name="valueSerializer">
-        ///     An ISerializer implementation instance that will be used to serialize values.
-        /// </param>
-        /// <param name="disableDeliveryReports">
-        ///     If true, disables delivery report notification. Note: if set to true and you use a ProduceAsync variant that returns
-        ///     a Task, the Tasks will never complete. Typically you should set this parameter to false. Set it to true for "fire and
-        ///     forget" semantics and a small boost in performance.
-        /// </param>
-        public Producer(
-            IEnumerable<KeyValuePair<string, object>> config,
-            ISerializer<TKey> keySerializer,
-            ISerializer<TValue> valueSerializer,
-            bool disableDeliveryReports
-        ) : this(config, keySerializer, valueSerializer, false, disableDeliveryReports) {}
 
         /// <summary>
         ///     Gets the ISerializer implementation instance used to serialize keys.
@@ -1345,6 +1319,8 @@ namespace Confluent.Kafka
         /// </remarks>
         public void Dispose()
             => producer.Dispose();
+
+        public void Poll(int millisecondsTimeout) => producer.Poll(millisecondsTimeout);
 
 
         /// <summary>
