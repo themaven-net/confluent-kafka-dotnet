@@ -18,41 +18,58 @@ using Xunit;
 using System;
 using System.Text;
 using System.Collections.Generic;
-using Confluent.Kafka.Serialization;
 
 
 namespace Confluent.Kafka.UnitTests
 {
     public class ConsumerTests
     {
-        /// <summary>
-        ///     Test that the Consumer constructor throws an exception if
-        ///     the group.id configuration parameter is not set and that
-        ///     the message of the exception mentions group.id (i.e. is
-        ///     not some unrelated exception).
-        /// </summary>
         [Fact]
         public void Constuctor()
         {
-            var config = new Dictionary<string, object>();
-            var e = Assert.Throws<ArgumentException>(() => { var c = new Consumer(config); });
-            Assert.True(e.Message.Contains("group.id"));
-            e = Assert.Throws<ArgumentException>(() => { var c = new Consumer<Null, string>(config, null, new StringDeserializer(Encoding.UTF8)); });
-            Assert.True(e.Message.Contains("group.id"));
+            // Throw exception if 'group.id' is not set in config and ensure that exception
+            // mentions 'group.id'.
+            var config = new ConsumerConfig();
+            var e = Assert.Throws<ArgumentException>(() => { var c = new ConsumerBuilder<byte[], byte[]>(config).Build(); });
+            Assert.Contains("group.id", e.Message);
 
-            e = Assert.Throws<ArgumentException>(() => 
+            // Throw exception if a config value is null and ensure that exception mentions the
+            // respective config key.
+            var configWithNullValue = CreateValidConfiguration();
+            configWithNullValue.Set("sasl.password", null);
+            e = Assert.Throws<ArgumentNullException>(() => { var c = new ConsumerBuilder<byte[], byte[]>(configWithNullValue).Build(); });
+            Assert.Contains("sasl.password", e.Message);
+
+            // Throw an exception if dotnet.cancellation.delay.max.ms is out of range.
+            e = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
-                var validConfig = new Dictionary<string, object>
+                var c = new ConsumerBuilder<byte[], byte[]>(new ConsumerConfig
                 {
-                    { "bootstrap.servers", "localhost:9092" },
-                    { "group.id", "my-group" }
-                };
-                var deserializer = new StringDeserializer(Encoding.UTF8);
-                var c = new Consumer<string, string>(validConfig, deserializer, deserializer); 
+                    BootstrapServers = "localhost:9092",
+                    GroupId = Guid.NewGuid().ToString(),
+                    CancellationDelayMaxMs = 0
+                }).Build();
             });
-            Assert.True(e.Message.Contains("must not be the same object"));
+            Assert.Contains("range", e.Message);
+            e = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                var c = new ConsumerBuilder<byte[], byte[]>(new ConsumerConfig
+                {
+                    BootstrapServers = "localhost:9092",
+                    GroupId = Guid.NewGuid().ToString(),
+                    CancellationDelayMaxMs = 10001
+                }).Build();
+            });
+            Assert.Contains("range", e.Message);
+        }
 
-            // positve case covered by integration tests. here, avoiding creating a rd_kafka_t instance.
+        private static ConsumerConfig CreateValidConfiguration()
+        {
+            return new ConsumerConfig
+            {
+                BootstrapServers = "localhost:9092",
+                GroupId = "my-group"
+            };
         }
     }
 }
